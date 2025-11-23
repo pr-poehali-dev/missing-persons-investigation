@@ -18,6 +18,7 @@ interface MissingPerson {
   image: string;
   status: 'активно' | 'найден' | 'закрыто';
   daysGone: number;
+  coordinates: { lat: number; lng: number };
 }
 
 const missingPeople: MissingPerson[] = [
@@ -30,7 +31,8 @@ const missingPeople: MissingPerson[] = [
     description: 'Рост 180 см, темные волосы, карие глаза. Был одет в черную куртку и джинсы.',
     image: 'https://cdn.poehali.dev/projects/cac48b09-a005-4225-847d-256da5978354/files/cef69147-3cef-4ceb-8b78-3c133cf93ae4.jpg',
     status: 'активно',
-    daysGone: 39
+    daysGone: 39,
+    coordinates: { lat: 55.6564, lng: 37.5183 }
   },
   {
     id: 2,
@@ -41,13 +43,15 @@ const missingPeople: MissingPerson[] = [
     description: 'Рост 165 см, светлые волосы, голубые глаза. Носила красное пальто.',
     image: 'https://cdn.poehali.dev/projects/cac48b09-a005-4225-847d-256da5978354/files/f56d9ce6-08ec-42e2-859f-1e718eba20ec.jpg',
     status: 'активно',
-    daysGone: 20
+    daysGone: 20,
+    coordinates: { lat: 59.9343, lng: 30.3351 }
   }
 ];
 
 export default function Index() {
   const [anonymousForm, setAnonymousForm] = useState({ message: '', contact: '' });
   const [witnessForm, setWitnessForm] = useState({ name: '', phone: '', testimony: '', personId: '' });
+  const [selectedPerson, setSelectedPerson] = useState<MissingPerson | null>(null);
 
   const handleAnonymousSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +101,126 @@ export default function Index() {
       </div>
 
       <div className="container mx-auto px-4 py-16">
+        <div className="mb-12">
+          <h2 className="text-3xl font-bold mb-6">Карта последних мест</h2>
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="relative h-[500px] bg-card">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-full h-full relative">
+                    <svg viewBox="0 0 800 500" className="w-full h-full">
+                      <defs>
+                        <filter id="glow">
+                          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      
+                      <rect width="800" height="500" fill="hsl(var(--card))" opacity="0.3"/>
+                      
+                      <line x1="0" y1="250" x2="800" y2="250" stroke="hsl(var(--border))" strokeWidth="1" opacity="0.3"/>
+                      <line x1="400" y1="0" x2="400" y2="500" stroke="hsl(var(--border))" strokeWidth="1" opacity="0.3"/>
+                      
+                      {missingPeople.map((person, index) => {
+                        const x = 150 + index * 300;
+                        const y = 200 + (index % 2) * 100;
+                        return (
+                          <g key={person.id}>
+                            <circle
+                              cx={x}
+                              cy={y}
+                              r="40"
+                              fill="hsl(var(--destructive))"
+                              opacity="0.2"
+                              filter="url(#glow)"
+                            />
+                            <circle
+                              cx={x}
+                              cy={y}
+                              r="25"
+                              fill="hsl(var(--destructive))"
+                              className="cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => setSelectedPerson(person)}
+                            />
+                            <text
+                              x={x}
+                              y={y + 5}
+                              textAnchor="middle"
+                              fill="white"
+                              fontSize="14"
+                              fontWeight="bold"
+                              className="pointer-events-none"
+                            >
+                              #{person.id}
+                            </text>
+                            <line
+                              x1={x}
+                              y1={y + 25}
+                              x2={x}
+                              y2={y + 50}
+                              stroke="hsl(var(--primary))"
+                              strokeWidth="2"
+                            />
+                            <text
+                              x={x}
+                              y={y + 70}
+                              textAnchor="middle"
+                              fill="hsl(var(--muted-foreground))"
+                              fontSize="12"
+                              className="pointer-events-none"
+                            >
+                              {person.location.split(',')[0]}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
+                </div>
+                
+                {selectedPerson && (
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <Card className="border-primary/50">
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-lg">{selectedPerson.name}</CardTitle>
+                            <CardDescription>{selectedPerson.age} лет</CardDescription>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedPerson(null)}
+                          >
+                            <Icon name="X" size={16} />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-2 pt-0">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Icon name="MapPin" size={14} className="text-muted-foreground" />
+                          <span>{selectedPerson.location}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Icon name="Calendar" size={14} className="text-muted-foreground" />
+                          <span>{selectedPerson.lastSeen}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Icon name="Clock" size={14} className="text-muted-foreground" />
+                          <span>{selectedPerson.daysGone} дней назад</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold">Пропавшие люди</h2>
           <div className="flex gap-3">
